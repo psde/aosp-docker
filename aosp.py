@@ -18,6 +18,7 @@ class Dockerfile():
             misc = "RUN {cmd}".format(cmd=self.misc)
         d = ("FROM {base}\n"
              "MAINTAINER Mathias Garbe <mgarbe@inovex.de>\n"
+             "RUN touch /env.bash && echo 'source /env.bash' > /rc.bash && echo 'cd $PWD' >> /rc.bash && echo \"trap \\\"declare -p | sed -e '/declare -[a-z]*r/d' > /env.bash && declare -f >> /env.bash\\\" EXIT\" >> /rc.bash\n"
              "RUN apt-get update\n"
              "RUN {java}\n"
              "RUN echo \"dash dash/sh boolean false\" | debconf-set-selections && dpkg-reconfigure -p critical dash\n"
@@ -93,12 +94,24 @@ class AospDocker:
 
         return True, container_id
 
+    def needsContainer(self):
+        s, id = self.getContainer()
+
+        if s == False:
+            if id == -1:
+                print 'Container not found, please use \'aosp init\' first'
+            else:
+                print 'Container id found but container not present, please use \'aosp init\' first'
+            return False
+        return True
+
     def printUsage(self):
         print 'Usage: aosp [COMMAND] [arg...]'
         print 'Commands:'
         print '\tinit\tInitialize a container in current directory (should be AOSP dir)'
         print '\texec\tExecutes a command inside the aosp build container'
-        print '\clean\tRemoves container'
+        print '\tbash\tStarts a bash shell inside the container'
+        print '\tclean\tRemoves container'
         print '\tinfo\tShows information about the aosp container'
 
     def main(self):
@@ -112,7 +125,13 @@ class AospDocker:
         if cmd == 'init':
             self.init()
         elif cmd == 'exec' or cmd == 'execute':
+            if self.needsContainer() == False:
+                return
             self.execute()
+        elif cmd == 'bash':
+            if self.needsContainer() == False:
+                return
+            self.bash()
         elif cmd == 'clean':
             self.clean()
         elif cmd == 'info':
@@ -154,7 +173,7 @@ class AospDocker:
 
         print 'Setting up new container ...'
         id = subprocess.check_output('docker run -td -v "$PWD:/aosp" {name} /bin/bash'.format(name=dockerfile.getImageName()), shell=True).strip()
-        subprocess.call('docker exec -it {id} /bin/bash -ic "cd /aosp && declare -p | sed -e \'/declare -[a-z]*r/d\' > /env.sh && declare -f >> /env.sh"'.format(id=id), shell=True)
+        subprocess.call('docker exec -it {id} /bin/bash -ic "cd /aosp && declare -p | sed -e \'/declare -[a-z]*r/d\' > /env.bash && declare -f >> /env.bash"'.format(id=id), shell=True)
         self.config.set('main', 'container-id', id)
         print 'done: {id}'.format(id=id)
         print 'You can now use aosp exec [COMMAND]'
@@ -164,13 +183,6 @@ class AospDocker:
     def execute(self):
         s, id = self.getContainer()
 
-        if s == False:
-            if id == -1:
-                print 'Container not found, please use \'aosp init\' first'
-            else:
-                print 'Container id found but container not present, please use \'aosp init\' first'
-            return
-
         if len(sys.argv) == 2:
             print 'Not enough parameters.'
             print 'Usage: aosp exec [COMMAND...]'
@@ -178,22 +190,26 @@ class AospDocker:
 
         cmd = " ".join(sys.argv[2:])
 
-        subprocess.call('docker exec -it {id} /bin/bash -ic "source /env.sh && cd \$PWD && {cmd} && declare -p | sed -e \'/declare -[a-z]*r/d\' > /env.sh && declare -f >> /env.sh"'.format(id=id, cmd=cmd), shell=True)
+        subprocess.call('docker exec -it {id} /bin/bash -ic "source /env.bash && cd \$PWD && {cmd} && declare -p | sed -e \'/declare -[a-z]*r/d\' > /env.bash && declare -f >> /env.bash"'.format(id=id, cmd=cmd), shell=True)
 
         return
+
+    def bash(self):
+        s, id = self.getContainer()
+        subprocess.call('docker exec -it {id} /bin/bash --rcfile /rc.bash '.format(id=id), shell=True)
 
     def clean(self):
         s, id = self.getContainer()
 
         if s == False:
             print 'Container not initialized.'
-            self.config.set('main', 'container-id', '0')
+            self.config.set('main', 'container-id', '-1')
             return
 
-        if id != 0:
+        if id != -1:
             print 'Container found, trying to remove...'
             subprocess.check_output('docker rm -f ' + id, shell=True)
-            self.config.set('main', 'container-id', '0')
+            self.config.set('main', 'container-id', '-1')
             print 'done.'
 
     def info(self):
