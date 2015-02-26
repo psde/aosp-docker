@@ -88,6 +88,9 @@ class AospDocker:
         except ConfigParser.NoOptionError:
             return False, -1
 
+        if container_id == '-1':
+            return False, -1
+
         try:
             count = subprocess.check_output('docker ps -a | grep -c {id}'.format(id=container_id[:11]), shell=True).strip()
         except Exception:
@@ -222,6 +225,14 @@ class AospDocker:
             print 'done.'
 
     def info(self):
+        s, id = self.getContainer()
+
+        if s == False or id == -1:
+            print 'No container found'
+            return
+
+        print 'Container ID: {id}'.format(id=id)
+
         pass
 
 if __name__ == "__main__":
