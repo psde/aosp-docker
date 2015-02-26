@@ -33,12 +33,16 @@ class Dockerfile():
         return d
 
 def buildVersions():
-    java6 = 'echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" >> /etc/apt/sources.list.d/webupd8.list && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EEA14886 &&  echo oracle-java6-installer shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && apt-get update'
-    java7 = 'apt-get install -y openjdk-7-jdk '
+    java6_lucid = 'echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu lucid main" >> /etc/apt/sources.list.d/webupd8.list && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EEA14886 &&  echo oracle-java6-installer shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && apt-get update && apt-get -y install oracle-java6-installer oracle-java6-set-default'
+    java6_precise = 'echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu precise main" >> /etc/apt/sources.list.d/webupd8.list && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EEA14886 &&  echo oracle-java6-installer shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && apt-get update && apt-get -y install oracle-java6-installer oracle-java6-set-default'
+    java6_trusty = 'echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" >> /etc/apt/sources.list.d/webupd8.list && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EEA14886 &&  echo oracle-java6-installer shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && apt-get update && apt-get -y install oracle-java6-installer oracle-java6-set-default'
+    java7 = 'apt-get install -y openjdk-7-jdk'
 
     v = {}
-    v['4.4'] = Dockerfile('4.4', 'ubuntu:14.04', 'bc bison bsdmainutils build-essential curl flex g++-multilib gcc-multilib git gnupg gperf lib32ncurses5-dev lib32readline-gplv2-dev lib32z1-dev libesd0-dev libncurses5-dev libsdl1.2-dev libwxgtk2.8-dev libxml2-utils lzop oracle-java6-installer oracle-java6-set-default pngcrush schedtool xsltproc zip zlib1g-dev', java6)
-    v['5.0'] = Dockerfile('5.0', 'ubuntu:14.04', 'bc bison bsdmainutils build-essential curl flex g++-multilib gcc-multilib git gnupg gperf lib32ncurses5-dev lib32readline-gplv2-dev lib32z1-dev libesd0-dev libncurses5-dev libsdl1.2-dev libwxgtk2.8-dev libxml2-utils lzop oracle-java6-installer oracle-java6-set-default pngcrush schedtool xsltproc zip zlib1g-dev', java7)
+    v['4.0'] = Dockerfile('4.0', 'ubuntu:10.04', 'bc bison bsdmainutils build-essential curl flex g++-multilib gcc-multilib git gnupg gperf lib32ncurses5-dev lib32readline-gplv2-dev lib32z1-dev libesd0-dev libncurses5-dev libsdl1.2-dev libwxgtk2.8-dev libxml2-utils lzop pngcrush schedtool xsltproc zip zlib1g-dev', java6_lucid)
+    v['4.1'] = Dockerfile('4.4', 'ubuntu:12.04', 'bc bison bsdmainutils build-essential curl flex g++-multilib gcc-multilib git gnupg gperf lib32ncurses5-dev lib32readline-gplv2-dev lib32z1-dev libesd0-dev libncurses5-dev libsdl1.2-dev libwxgtk2.8-dev libxml2-utils lzop pngcrush schedtool xsltproc zip zlib1g-dev', java6_precise)
+    v['4.4'] = Dockerfile('4.4', 'ubuntu:14.04', 'bc bison bsdmainutils build-essential curl flex g++-multilib gcc-multilib git gnupg gperf lib32ncurses5-dev lib32readline-gplv2-dev lib32z1-dev libesd0-dev libncurses5-dev libsdl1.2-dev libwxgtk2.8-dev libxml2-utils lzop pngcrush schedtool xsltproc zip zlib1g-dev', java6_trusty)
+    v['5.0'] = Dockerfile('5.0', 'ubuntu:14.04', 'bc bison bsdmainutils build-essential curl flex g++-multilib gcc-multilib git gnupg gperf lib32ncurses5-dev lib32readline-gplv2-dev lib32z1-dev libesd0-dev libncurses5-dev libsdl1.2-dev libwxgtk2.8-dev libxml2-utils lzop pngcrush schedtool xsltproc zip zlib1g-dev', java7)
     return v
 
 class AospDocker:
@@ -208,7 +212,12 @@ class AospDocker:
 
         if id != -1:
             print 'Container found, trying to remove...'
-            subprocess.check_output('docker rm -f ' + id, shell=True)
+
+            try:
+                subprocess.check_output('docker rm -f ' + id, shell=True)
+            except Exception:
+                pass
+
             self.config.set('main', 'container-id', '-1')
             print 'done.'
 
