@@ -140,11 +140,12 @@ class AospDocker:
             subprocess.check_output('docker rm -f {id}'.format(id=id), shell=True)
 
         print 'Setting up new container ...'
-        id = subprocess.check_output('docker run -td -v "$PWD:/aosp" {name} /bin/bash'.format(name=dockerfile.getImageName()), shell=True).strip()
+        id = subprocess.check_output('docker run -td --net host -e DISPLAY=unix$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -v "$PWD:/aosp" {name} /bin/bash'.format(name=dockerfile.getImageName()), shell=True).strip()
         subprocess.call('docker exec -it {id} /bin/bash -ic "cd /aosp && {saveEnv}"'.format(id=id, saveEnv=AospDocker.SaveEnv), shell=True)
         self.config.set('main', 'container-id', id)
         print 'done: {id}'.format(id=id)
         print 'You can now use aosp exec [COMMAND]'
+        print 'In order to use X11, you need to enable access via \'xhost +\''
 
         pass
 
