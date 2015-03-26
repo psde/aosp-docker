@@ -1,6 +1,8 @@
 #!/bin/python
 import os, sys, subprocess, ConfigParser
 
+import DockerClient
+
 from dockerfile import Dockerfile
 
 class AospDocker:
@@ -9,6 +11,7 @@ class AospDocker:
 
     def __init__(self):
         self.versions = Dockerfile.buildVersions()
+        self.client = DockerClient.Client()
 
         config_dir = os.getcwd() + '/.aosp-docker/'
         config_file = config_dir + 'config'
@@ -30,13 +33,14 @@ class AospDocker:
             self.config.write(f)
 
     def checkOrBuildImage(self, dockerfile):
-        count = '0'
+        image = None
+        images = self.client.getImages()
         try:
-            count = subprocess.check_output('docker images | grep -c {name}'.format(name=dockerfile.getImageName()), shell=True).strip()
+            image = filter(lambda image: image.repo.startswith(dockerfile.getImageName()), images)[0]
         except Exception:
             pass
 
-        if count != '1':
+        if image is None:
             cmd = 'docker build -t {name} -'.format(name=dockerfile.getImageName())
             p = subprocess.Popen(cmd.split(" "), stdin=subprocess.PIPE, stderr=subprocess.STDOUT)    
             p.communicate(input=b'' + dockerfile.buildDockerfile())[0]
@@ -47,29 +51,29 @@ class AospDocker:
         try:
             container_id = self.config.get('main', 'container-id')
         except ConfigParser.NoOptionError:
-            return False, -1
+            return None
 
         if container_id == '-1':
-            return False, -1
+            return None
 
+        container = None
+        containers = self.client.getContainers()
         try:
-            count = subprocess.check_output('docker ps -a | grep -c {id}'.format(id=container_id[:11]), shell=True).strip()
+            container = filter(lambda container: container.id == container_id, containers)[0]
         except Exception:
-            return False, -1
+            return None
 
-        if count != '1':
-            return False, container_id
+        if container.up == False:
+            print 'Container stopped, starting ...'
+            self.client.start(container.id)
 
-        return True, container_id
+        return container
 
     def needsContainer(self):
-        s, id = self.getContainer()
+        container = self.getContainer()
 
-        if s == False:
-            if id == -1:
-                print 'Container not found, please use \'aosp init\' first'
-            else:
-                print 'Container id found but container not present, please use \'aosp init\' first'
+        if container is None:
+            print 'Container not found, please use \'aosp init\' first'
             return False
         return True
 
@@ -129,15 +133,11 @@ class AospDocker:
         dockerfile = self.versions[version]
         self.checkOrBuildImage(dockerfile)
 
-        s, id = self.getContainer()
+        container = self.getContainer()
 
-        if s == True:
+        if container is not None:
             print 'Container already initialized'
             return
-
-        if id != -1:
-            print 'Old container found, trying to remove'
-            subprocess.check_output('docker rm -f {id}'.format(id=id), shell=True)
 
         print 'Setting up new container ...'
         id = subprocess.check_output('docker run -td --net host -e DISPLAY=unix$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -v "$PWD:/aosp" {name} /bin/bash'.format(name=dockerfile.getImageName()), shell=True).strip()
@@ -150,50 +150,53 @@ class AospDocker:
         pass
 
     def execute(self):
-        s, id = self.getContainer()
+        container = self.getContainer()
 
         if len(sys.argv) == 2:
             print 'Not enough parameters.'
             print 'Usage: aosp exec [COMMAND...]'
             return
 
+        if container.up == False:
+            print 'Container {id} down, starting ...'.format(id=container.id)
+            self.client.start(container.id)
+
         cmd = " ".join(sys.argv[2:])
 
-        subprocess.call('docker exec -it {id} /bin/bash -ic "{loadEnv} && cd \$PWD && {cmd} && {saveEnv}"'.format(id=id, loadEnv=AospDocker.LoadEnv, cmd=cmd, saveEnv=AospDocker.SaveEnv), shell=True)
+        subprocess.call('docker exec -it {id} /bin/bash -ic "{loadEnv} && cd \$PWD && {cmd} && {saveEnv}"'.format(id=container.id, loadEnv=AospDocker.LoadEnv, cmd=cmd, saveEnv=AospDocker.SaveEnv), shell=True)
 
         return
 
     def bash(self):
-        s, id = self.getContainer()
-        subprocess.call('docker exec -it {id} /bin/bash --rcfile /rc.bash '.format(id=id), shell=True)
+        container = self.getContainer()
+        subprocess.call('docker exec -it {id} /bin/bash --rcfile /rc.bash '.format(id=container.id), shell=True)
 
     def clean(self):
-        s, id = self.getContainer()
+        container = self.getContainer()
 
-        if s == False:
+        if container is None:
             print 'Container not initialized.'
             self.config.set('main', 'container-id', '-1')
             return
 
-        if id != -1:
-            print 'Container found, trying to remove...'
+        print 'Container found, trying to remove...'
+        self.client.removeContainer(container.id)
 
-            try:
-                subprocess.check_output('docker rm -f ' + id, shell=True)
-            except Exception:
-                pass
-
-            self.config.set('main', 'container-id', '-1')
-            print 'done.'
+        self.config.set('main', 'container-id', '-1')
+        print 'done.'
 
     def info(self):
-        s, id = self.getContainer()
+        container = self.getContainer()
 
-        if s == False or id == -1:
-            print 'No container found'
+        if container is None:
+            print 'No container found, use aosp init first.'
             return
 
-        print 'Container ID: {id}'.format(id=id)
+        print 'Container Information'
+        print 'Id:\t{id}'.format(id=container.id)
+        print 'Image:\t{image}'.format(image=container.image)
+        print 'Names:\t{names}'.format(names=container.names)
+        print 'Status:\t{status}'.format(status=container.status)
 
         pass
 
