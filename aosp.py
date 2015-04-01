@@ -65,7 +65,7 @@ class AospDocker:
 
         if container.up == False:
             print 'Container stopped, starting ...'
-            self.client.start(container.id)
+            self.client.startContainer(container.id)
 
         return container
 
@@ -140,8 +140,10 @@ class AospDocker:
             return
 
         print 'Setting up new container ...'
+
         id = subprocess.check_output('docker run -td --net host -e DISPLAY=unix$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -v "$PWD:/aosp" {name} /bin/bash'.format(name=dockerfile.getImageName()), shell=True).strip()
-        subprocess.call('docker exec -it {id} /bin/bash -ic "cd /aosp && {saveEnv}"'.format(id=id, saveEnv=AospDocker.SaveEnv), shell=True)
+        self.client.interactive(id, '/bin/bash -ic "cd /aosp && {saveEnv}"'.format(id=id, saveEnv=AospDocker.SaveEnv))
+        
         self.config.set('main', 'container-id', id)
         print 'done: {id}'.format(id=id)
         print 'You can now use aosp exec [COMMAND]'
@@ -159,17 +161,15 @@ class AospDocker:
 
         if container.up == False:
             print 'Container {id} down, starting ...'.format(id=container.id)
-            self.client.start(container.id)
+            self.client.startContainer(container.id)
 
         cmd = " ".join(sys.argv[2:])
 
-        subprocess.call('docker exec -it {id} /bin/bash -ic "{loadEnv} && cd \$PWD && {cmd} && {saveEnv}"'.format(id=container.id, loadEnv=AospDocker.LoadEnv, cmd=cmd, saveEnv=AospDocker.SaveEnv), shell=True)
-
-        return
+        self.client.interactive(container.id, '/bin/bash -ic "{loadEnv} && cd \$PWD && {cmd} && {saveEnv}"'.format(id=container.id, loadEnv=AospDocker.LoadEnv, cmd=cmd, saveEnv=AospDocker.SaveEnv))
 
     def bash(self):
         container = self.getContainer()
-        subprocess.call('docker exec -it {id} /bin/bash --rcfile /rc.bash '.format(id=container.id), shell=True)
+        self.client.interactive(container.id, '/bin/bash --rcfile /rc.bash')
 
     def clean(self):
         container = self.getContainer()
@@ -197,8 +197,6 @@ class AospDocker:
         print 'Image:\t{image}'.format(image=container.image)
         print 'Names:\t{names}'.format(names=container.names)
         print 'Status:\t{status}'.format(status=container.status)
-
-        pass
 
 if __name__ == "__main__":
     aosp = AospDocker()

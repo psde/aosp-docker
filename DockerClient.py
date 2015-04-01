@@ -1,4 +1,4 @@
-import docker
+import docker, subprocess
 
 class Container():
     def __init__(self, info):
@@ -55,5 +55,12 @@ class Client():
     def removeContainer(self, id):
         return self.client.remove_container(container=id, force=True)
 
+    def createContainer(self):
+        pass
+
+    def interactive(self, id, command):
+        # docker-py has now way to execute a command interactive
+        subprocess.call('docker exec -it {id} {command}'.format(id=id, command=command), shell=True)
+
     def startContainer(self, id):
-        return self.client.start(container=container['Id'])
+        return self.client.start(container=id)
