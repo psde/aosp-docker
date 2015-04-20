@@ -29,7 +29,13 @@ class AospDocker:
         self.versions = Dockerfile.buildVersions()
         self.client = dockerclient.Client()
 
-        config_dir = os.getcwd() + '/.aosp-docker/'
+        self.directory = self.findConfigDir()
+        if self.directory is None:
+            self.directory = os.getcwd()
+
+        self.relative_directory = os.path.relpath(os.getcwd(), self.directory)
+
+        config_dir = self.directory + '/.aosp-docker/'
         config_file = config_dir + 'config'
 
         # Check if dir exists
@@ -47,6 +53,20 @@ class AospDocker:
 
         with open(config_file, 'w') as f:
             self.config.write(f)
+
+    def findConfigDir(self):
+        current_path = os.getcwd()
+        old_path = current_path
+        while True:
+            if os.path.isfile(os.path.join(current_path, '.aosp-docker', 'config')) == True:
+                return current_path
+
+            current_path = os.path.abspath(os.path.join(current_path, os.pardir))
+            if old_path == current_path:
+                break
+            old_path = current_path
+
+        return None
 
     def checkOrBuildImage(self, dockerfile):
         image = None
@@ -155,12 +175,11 @@ class AospDocker:
         volumes = {'/tmp/.X11-unix': '/tmp/.X11-unix', os.getcwd(): '/aosp'}
         env = ['DISPLAY=unix{display}'.format(display=os.environ['DISPLAY'])]
         container = self.client.createContainer(dockerfile=dockerfile, command='/bin/bash', environment=env, volumes=volumes)
-        id = container.id
 
-        self.client.interactive(id, '/bin/bash -ic "cd /aosp && {saveEnv}"'.format(id=id, saveEnv=AospDocker.SaveEnv))
+        self.client.interactive(container.id, '/bin/bash -ic "{saveEnv}"'.format(saveEnv=AospDocker.SaveEnv))
 
-        self.config.set('main', 'container-id', id)
-        print 'done: {id}'.format(id=id)
+        self.config.set('main', 'container-id', container.id)
+        print 'done: {id}'.format(id=container.id)
         print 'You can now use aosp exec [COMMAND]'
         print 'In order to use X11, you need to enable access via \'xhost +\''
 
@@ -180,7 +199,7 @@ class AospDocker:
 
         cmd = " ".join(sys.argv[2:])
 
-        self.client.interactive(container.id, '/bin/bash -ic "{loadEnv} && cd \$PWD && {cmd} && {saveEnv}"'.format(id=container.id, loadEnv=AospDocker.LoadEnv, cmd=cmd, saveEnv=AospDocker.SaveEnv))
+        self.client.interactive(container.id, '/bin/bash -ic "{loadEnv} && cd /aosp/{rel_dir} && {cmd} && {saveEnv}"'.format(rel_dir=self.relative_directory, loadEnv=AospDocker.LoadEnv, cmd=cmd, saveEnv=AospDocker.SaveEnv))
 
     def bash(self):
         container = self.getContainer()
@@ -209,6 +228,8 @@ class AospDocker:
 
         print 'Container Information'
         print 'Id:\t{id}'.format(id=container.id)
+        print 'Dir:\t{dir}'.format(dir=self.directory)
+        print 'RelDir:\t{dir}'.format(dir=self.relative_directory)
         print 'Image:\t{image}'.format(image=container.image)
         print 'Names:\t{names}'.format(names=container.names)
         print 'Status:\t{status}'.format(status=container.status)
