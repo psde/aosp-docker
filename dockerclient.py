@@ -53,7 +53,7 @@ class Image():
 
 class Client():
     def __init__(self):
-        self.client = docker.Client(base_url='unix://var/run/docker.sock')
+        self.client = docker.Client(**docker.utils.kwargs_from_env())
 
     def getImages(self):
         imageInfos = self.client.images()
