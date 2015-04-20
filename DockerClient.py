@@ -1,5 +1,7 @@
 import docker, subprocess
 
+from dockerfile import Dockerfile
+
 class Container():
     def __init__(self, info):
         self.id = info['Id']
@@ -45,6 +47,14 @@ class Client():
     def removeImage(self, id):
         return self.client.remove_image(image=id)
 
+    def buildImage(self, dockerfile):
+        if isinstance(dockerfile, Dockerfile) == False:
+            raise TypeError('{cls} is not derrived from Dockerfile'.format(cls=dockerfile))
+
+        cmd = 'docker build -t {name} -'.format(name=dockerfile.getImageName())
+        p = subprocess.Popen(cmd.split(" "), stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
+        p.communicate(input=b'' + dockerfile.buildDockerfile())[0]
+
     def getContainers(self):
         containerInfos = self.client.containers(all=True)
         containers = []
@@ -55,11 +65,12 @@ class Client():
     def removeContainer(self, id):
         return self.client.remove_container(container=id, force=True)
 
-    def createContainer(self):
-        pass
+    def createContainer(self, command, env, volumes):
+        container = self.client.create_container(tty=True, detach=True, command=command, volumes=volumes, environment=env)
+        return self.client.start(priviliged=True, network_mode='host', id=container['Id'])
 
     def interactive(self, id, command):
-        # docker-py has now way to execute a command interactive
+        # docker-py has now way to execute a command interactively
         subprocess.call('docker exec -it {id} {command}'.format(id=id, command=command), shell=True)
 
     def startContainer(self, id):

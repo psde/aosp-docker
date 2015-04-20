@@ -14,7 +14,7 @@ class Dockerfile():
         if self.misc != '':
             misc = "RUN {cmd}".format(cmd=self.misc)
         d = ("FROM {base}\n"
-             "MAINTAINER Mathias Garbe <mgarbe@inovex.de>\n"
+             "MAINTAINER Mathias Garbe <mathias.garbe@inovex.de>\n"
              "RUN touch /env.bash && echo 'source /env.bash' > /rc.bash && echo 'cd $PWD' >> /rc.bash && echo \"trap \\\"declare -p | sed -e '/declare -[a-z]*r/d' > /env.bash && declare -f >> /env.bash\\\" EXIT\" >> /rc.bash\n"
              "RUN apt-get update\n"
              "RUN {java}\n"

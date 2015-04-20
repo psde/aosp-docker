@@ -41,9 +41,7 @@ class AospDocker:
             pass
 
         if image is None:
-            cmd = 'docker build -t {name} -'.format(name=dockerfile.getImageName())
-            p = subprocess.Popen(cmd.split(" "), stdin=subprocess.PIPE, stderr=subprocess.STDOUT)    
-            p.communicate(input=b'' + dockerfile.buildDockerfile())[0]
+            self.client.buildImage(dockerfile)
 
         return True
 
