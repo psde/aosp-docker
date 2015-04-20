@@ -20,7 +20,7 @@ Very early state.
 
 ## Example usage
 
-### Download Android 4.4.4
+### Download AOSP 4.4.4
 	~ $> mkdir ~/aosp && cd ~/aosp
 	~/aosp $> aosp init 4.4
 	~/aosp $> aosp exec repo init -u https://android.googlesource.com/platform/manifest/ -b android-4.4.4_r2
@@ -33,11 +33,12 @@ Very early state.
 
 ### Inside a sub directory
 	~/aosp $> cd packages/apps/Calculator
-	~/aosp/packages/apps/Calculator $> mmm
+	~/aosp/packages/apps/Calculator $> aosp exec mmm
 
-### Drop into a bash
+### Drop into a bash and continue building
+	~/aosp $> aosp exec lunch
 	~/aosp $> aosp bash
-	/aosp# ▉ 
+	/aosp# make -j5
 
 ### Remove container
-	aosp clean
+	~/aosp $> aosp clean
