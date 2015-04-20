@@ -16,7 +16,7 @@
 
 import os, sys, ConfigParser
 
-import DockerClient
+import dockerclient
 
 from dockerfile import Dockerfile
 
@@ -26,7 +26,7 @@ class AospDocker:
 
     def __init__(self):
         self.versions = Dockerfile.buildVersions()
-        self.client = DockerClient.Client()
+        self.client = dockerclient.Client()
 
         config_dir = os.getcwd() + '/.aosp-docker/'
         config_file = config_dir + 'config'
