@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, sys, subprocess, ConfigParser
+import os, sys, ConfigParser
 
 import DockerClient
 
@@ -69,11 +69,8 @@ class AospDocker:
         if container_id == '-1':
             return None
 
-        container = None
-        containers = self.client.getContainers()
-        try:
-            container = filter(lambda container: container.id == container_id, containers)[0]
-        except Exception:
+        container = self.client.getContainerById(container_id)
+        if container is None:
             return None
 
         if container.up == False:
@@ -154,7 +151,11 @@ class AospDocker:
 
         print 'Setting up new container ...'
 
-        id = subprocess.check_output('docker run -td --net host -e DISPLAY=unix$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -v "$PWD:/aosp" {name} /bin/bash'.format(name=dockerfile.getImageName()), shell=True).strip()
+        volumes = {'/tmp/.X11-unix': '/tmp/.X11-unix', os.getcwd(): '/aosp'}
+        env = ['DISPLAY=unix{display}'.format(display=os.environ['DISPLAY'])]
+        container = self.client.createContainer(dockerfile=dockerfile, command='/bin/bash', environment=env, volumes=volumes)
+        id = container.id
+
         self.client.interactive(id, '/bin/bash -ic "cd /aosp && {saveEnv}"'.format(id=id, saveEnv=AospDocker.SaveEnv))
         
         self.config.set('main', 'container-id', id)

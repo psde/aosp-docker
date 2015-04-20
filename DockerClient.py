@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import docker, subprocess
+import docker, subprocess, os
 
 from dockerfile import Dockerfile
 
@@ -76,12 +76,29 @@ class Client():
             containers.append(Container(info))
         return containers
 
+    def getContainerById(self, id):
+        containers = self.getContainers()
+        try:
+            return filter(lambda container: container.id == id, containers)[0]
+        except Exception:
+            return None
+
     def removeContainer(self, id):
         return self.client.remove_container(container=id, force=True)
 
-    def createContainer(self, command, env, volumes):
-        container = self.client.create_container(tty=True, detach=True, command=command, volumes=volumes, environment=env)
-        return self.client.start(priviliged=True, network_mode='host', id=container['Id'])
+    def createContainer(self, dockerfile, command, environment, volumes):
+        if isinstance(dockerfile, Dockerfile) == False:
+            raise TypeError('{cls} is not derrived from Dockerfile'.format(cls=dockerfile))
+
+        container_volumes = []
+        binds = {}
+        for key, value in volumes.iteritems():
+            binds[key] = {'bind': value, 'ro': False}
+            container_volumes.append(value)
+
+        container = self.client.create_container(tty=True, detach=True, image=dockerfile.getImageName(),command=command, volumes=container_volumes, environment=environment)
+        self.client.start(privileged=True, network_mode='host', container=container['Id'], binds=binds)
+        return self.getContainerById(container['Id'])
 
     def interactive(self, id, command):
         # docker-py has now way to execute a command interactively
