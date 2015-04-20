@@ -1,7 +1,7 @@
 aosp-docker
 ===========
 
-A self-contained script which can be used to build various AOSP versions inside a docker container.
+A python2 script which can be used to build various AOSP versions inside a docker container.
 
 Very early state.
 
