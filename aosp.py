@@ -203,6 +203,7 @@ class AospDocker:
 
     def bash(self):
         container = self.getContainer()
+        self.client.interactive(container.id, '/bin/bash -ic "{loadEnv} && cd /aosp/{rel_dir} && {saveEnv}"'.format(rel_dir=self.relative_directory, loadEnv=AospDocker.LoadEnv, saveEnv=AospDocker.SaveEnv))
         self.client.interactive(container.id, '/bin/bash --rcfile /rc.bash')
 
     def clean(self):
