@@ -15,6 +15,8 @@
 import docker
 import subprocess
 import os
+import io
+import json
 from dockerfile import Dockerfile
 
 
@@ -69,9 +71,12 @@ class Client():
         if isinstance(dockerfile, Dockerfile) == False:
             raise TypeError('{cls} is not derrived from Dockerfile'.format(cls=dockerfile))
 
-        cmd = 'docker build -t {name} -'.format(name=dockerfile.getImageName())
-        p = subprocess.Popen(cmd.split(" "), stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
-        p.communicate(input=b'' + dockerfile.buildDockerfile())[0]
+        fileobj = io.BytesIO(dockerfile.buildDockerfile().encode('utf-8'))
+        for line in self.client.build(fileobj=fileobj, rm=True, forcerm=True, tag=dockerfile.getImageName()):
+            try:
+                print json.loads(line)['stream'],
+            except:
+                print line
 
     def getContainers(self):
         containerInfos = self.client.containers(all=True)
