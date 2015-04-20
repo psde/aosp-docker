@@ -50,7 +50,7 @@ class Dockerfile():
         java6_trusty = 'echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" >> /etc/apt/sources.list.d/webupd8.list && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EEA14886 &&  echo oracle-java6-installer shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && apt-get update && apt-get -y install oracle-java6-installer oracle-java6-set-default'
         java7 = 'apt-get install -y openjdk-7-jdk'
 
-        misc_git = 'apt-get install -y python-software-properties && add-apt-repository ppa:git-core/ppa && apt-get update && apt-get install -y git'  
+        misc_git = 'apt-get install -y python-software-properties && add-apt-repository ppa:git-core/ppa && apt-get update && apt-get install -y git'
 
         v = {}
         v['4.0'] = Dockerfile('4.0', 'ubuntu:10.04', 'bash-completion uboot-mkimage gnupg flex bison gperf build-essential zip curl zlib1g-dev libc6-dev lib32ncurses5-dev ia32-libs x11proto-core-dev libx11-dev lib32readline5-dev lib32z-dev libgl1-mesa-dev g++-multilib mingw32 tofrodos python-markdown libxml2-utils xsltproc', java6_lucid, misc_git)

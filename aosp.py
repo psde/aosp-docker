@@ -14,11 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, sys, ConfigParser
-
+import os
+import sys
+import ConfigParser
 import dockerclient
-
 from dockerfile import Dockerfile
+
 
 class AospDocker:
     LoadEnv = 'source /env.bash'
@@ -73,7 +74,7 @@ class AospDocker:
         if container is None:
             return None
 
-        if container.up == False:
+        if not container.up:
             print 'Container stopped, starting ...'
             self.client.startContainer(container.id)
 
@@ -125,7 +126,7 @@ class AospDocker:
     def printInitUsage(self):
         print 'Usage: aosp init [VERSION]'
         print 'Supported versions: '
-        for key, value in self.versions.iteritems() :
+        for key, value in self.versions.iteritems():
             print "\t{key}\t\tbased on {base}".format(key=key, base=value.base)
 
     def init(self):
@@ -157,7 +158,7 @@ class AospDocker:
         id = container.id
 
         self.client.interactive(id, '/bin/bash -ic "cd /aosp && {saveEnv}"'.format(id=id, saveEnv=AospDocker.SaveEnv))
-        
+
         self.config.set('main', 'container-id', id)
         print 'done: {id}'.format(id=id)
         print 'You can now use aosp exec [COMMAND]'
@@ -173,7 +174,7 @@ class AospDocker:
             print 'Usage: aosp exec [COMMAND...]'
             return
 
-        if container.up == False:
+        if not container.up:
             print 'Container {id} down, starting ...'.format(id=container.id)
             self.client.startContainer(container.id)
 

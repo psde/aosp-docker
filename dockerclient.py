@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import docker, subprocess, os
-
+import docker
+import subprocess
+import os
 from dockerfile import Dockerfile
+
 
 class Container():
     def __init__(self, info):
@@ -32,6 +34,7 @@ class Container():
         attrs = ', '.join("%s: %s" % item for item in vars(self).items())
         return '<{attrs}>'.format(attrs=attrs)
 
+
 class Image():
     def __init__(self, info):
         self.id = info['Id']
@@ -46,6 +49,7 @@ class Image():
     def __str__(self):
         attrs = ', '.join("%s: %s" % item for item in vars(self).items())
         return '<{attrs}>'.format(attrs=attrs)
+
 
 class Client():
     def __init__(self):
@@ -96,7 +100,7 @@ class Client():
             binds[key] = {'bind': value, 'ro': False}
             container_volumes.append(value)
 
-        container = self.client.create_container(tty=True, detach=True, image=dockerfile.getImageName(),command=command, volumes=container_volumes, environment=environment)
+        container = self.client.create_container(tty=True, detach=True, image=dockerfile.getImageName(), command=command, volumes=container_volumes, environment=environment)
         self.client.start(privileged=True, network_mode='host', container=container['Id'], binds=binds)
         return self.getContainerById(container['Id'])
 
