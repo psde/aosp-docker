@@ -195,7 +195,7 @@ class AospDocker:
 
         # Execute command as user
         self.client.interactive(container.id, 'su - {user} -c "{loadEnv} && cd /aosp/{rel_dir} && {cmd} && {saveEnv}"'
-                                .format(rel_dir=self.relative_directory, loadEnv=AospDocker.LoadEnv, cmd=cmd, saveEnv=AospDocker.SaveEnv))
+                                .format(user=user, rel_dir=self.relative_directory, loadEnv=AospDocker.LoadEnv, cmd=cmd, saveEnv=AospDocker.SaveEnv))
 
     def bash(self):
         container = self.get_container()
