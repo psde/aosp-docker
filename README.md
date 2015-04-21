@@ -2,12 +2,16 @@
 
 A python 2 script which can be used to build various AOSP versions inside a docker container.
 
-Very early state.
+Very early state, expect things to change and break with new commits.
 
 ## Dependencies
 
+* docker 1.6
 * python2: docker-py
-* docker
+
+## Todo
+
+* Dockerfiles should not be generated at runtime, but maybe checked into the repository
 
 ## Usage
 	Usage: aosp [COMMAND] [arg...]
