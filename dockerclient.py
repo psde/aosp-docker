@@ -57,45 +57,45 @@ class Client():
     def __init__(self):
         self.client = docker.Client(**docker.utils.kwargs_from_env())
 
-    def getImages(self):
+    def get_images(self):
         imageInfos = self.client.images()
         images = []
         for info in imageInfos:
             images.append(Image(info))
         return images
 
-    def removeImage(self, id):
+    def remove_image(self, id):
         return self.client.remove_image(image=id)
 
-    def buildImage(self, dockerfile):
+    def build_image(self, dockerfile):
         if isinstance(dockerfile, Dockerfile) == False:
             raise TypeError('{cls} is not derrived from Dockerfile'.format(cls=dockerfile))
 
-        fileobj = io.BytesIO(dockerfile.buildDockerfile().encode('utf-8'))
-        for line in self.client.build(fileobj=fileobj, rm=True, forcerm=True, tag=dockerfile.getImageName()):
+        fileobj = io.BytesIO(dockerfile.build_dockerfile().encode('utf-8'))
+        for line in self.client.build(fileobj=fileobj, rm=True, forcerm=True, tag=dockerfile.get_image_name()):
             try:
                 print json.loads(line)['stream'],
             except:
                 print line
 
-    def getContainers(self):
+    def get_containers(self):
         containerInfos = self.client.containers(all=True)
         containers = []
         for info in containerInfos:
             containers.append(Container(info))
         return containers
 
-    def getContainerById(self, id):
-        containers = self.getContainers()
+    def get_container_by_id(self, id):
+        containers = self.get_containers()
         try:
             return filter(lambda container: container.id == id, containers)[0]
         except Exception:
             return None
 
-    def removeContainer(self, id):
+    def remove_container(self, id):
         return self.client.remove_container(container=id, force=True)
 
-    def createContainer(self, dockerfile, command, environment, volumes):
+    def create_container(self, dockerfile, command, environment, volumes):
         if isinstance(dockerfile, Dockerfile) == False:
             raise TypeError('{cls} is not derrived from Dockerfile'.format(cls=dockerfile))
 
@@ -105,13 +105,13 @@ class Client():
             binds[key] = {'bind': value, 'ro': False}
             container_volumes.append(value)
 
-        container = self.client.create_container(tty=True, detach=True, image=dockerfile.getImageName(), command=command, volumes=container_volumes, environment=environment)
+        container = self.client.create_container(tty=True, detach=True, image=dockerfile.get_image_name(), command=command, volumes=container_volumes, environment=environment)
         self.client.start(privileged=True, network_mode='host', container=container['Id'], binds=binds)
-        return self.getContainerById(container['Id'])
+        return self.get_container_by_id(container['Id'])
+
+    def start_container(self, id):
+        return self.client.start(container=id)
 
     def interactive(self, id, command):
         # docker-py has now way to execute a command interactively
         subprocess.call('docker exec -it {id} {command}'.format(id=id, command=command), shell=True)
-
-    def startContainer(self, id):
-        return self.client.start(container=id)

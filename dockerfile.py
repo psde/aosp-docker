@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 class Dockerfile():
     def __init__(self, version, base, packages, java, misc=''):
         self.version = version
@@ -20,10 +21,10 @@ class Dockerfile():
         self.java = java
         self.misc = misc
 
-    def getImageName(self):
+    def get_image_name(self):
         return 'aosp-docker-{version}'.format(version=self.version)
 
-    def buildDockerfile(self):
+    def build_dockerfile(self):
         misc = ''
         if self.misc != '':
             misc = "RUN {cmd}".format(cmd=self.misc)
@@ -44,7 +45,7 @@ class Dockerfile():
         return d
 
     @staticmethod
-    def buildVersions():
+    def build_versions():
         java6_lucid = 'apt-get install -y python-software-properties && add-apt-repository ppa:sun-java-community-team/sun-java6 && apt-get update && echo sun-java6-jdk shared/accepted-sun-dlj-v1-1 select true | /usr/bin/debconf-set-selections && apt-get install -y sun-java6-jdk'
         java6_precise = 'echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu precise main" >> /etc/apt/sources.list.d/webupd8.list && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EEA14886 &&  echo oracle-java6-installer shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && apt-get update && apt-get -y install oracle-java6-installer oracle-java6-set-default'
         java6_trusty = 'echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" >> /etc/apt/sources.list.d/webupd8.list && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EEA14886 &&  echo oracle-java6-installer shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && apt-get update && apt-get -y install oracle-java6-installer oracle-java6-set-default'
