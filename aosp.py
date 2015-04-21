@@ -16,9 +16,10 @@
 
 import os
 import sys
-import ConfigParser
+import shutil
 import operator
 import dockerclient
+import aospconfig
 from dockerfile import Dockerfile
 
 
@@ -36,24 +37,11 @@ class AospDocker:
 
         self.relative_directory = os.path.relpath(os.getcwd(), self.base_directory)
 
-        config_dir = self.base_directory + '/.aosp-docker/'
-        config_file = config_dir + 'config'
-
-        # Check if dir exists
-        if os.path.isdir(config_dir) == False:
-            os.makedirs(config_dir)
-
-        self.config = ConfigParser.SafeConfigParser()
-        self.config.read(config_file)
-        try:
-            self.config.add_section('main')
-        except Exception:
-            pass
+        self.config = aospconfig.AospDockerConfig(os.path.join(self.base_directory, '.aosp-docker'))
 
         self.main()
 
-        with open(config_file, 'w') as f:
-            self.config.write(f)
+        self.config.write()
 
     def find_config_directory(self):
         current_path = os.getcwd()
@@ -88,12 +76,9 @@ class AospDocker:
         except ConfigParser.NoOptionError:
             return None
 
-        if container_id == '-1':
-            return None
-
         container = self.client.get_container_by_id(container_id)
         if container is None:
-            self.config.set('main', 'container-id', '-1')
+            self.config.remove_option('main', 'container-id')
             return None
 
         if not container.up:
@@ -206,13 +191,16 @@ class AospDocker:
 
         if container is None:
             print 'Container not initialized.'
-            self.config.set('main', 'container-id', '-1')
+            self.config.remove_option('main', 'container-id')
             return
 
-        print 'Container found, trying to remove...'
+        print 'Container found, trying to remove... ',
         self.client.remove_container(container.id)
+        self.config.remove_option('main', 'container-id')
+        print 'done.'
 
-        self.config.set('main', 'container-id', '-1')
+        print 'Removing configuration directory... ',
+        self.config.remove_configuration()
         print 'done.'
 
     def info(self):
@@ -222,13 +210,16 @@ class AospDocker:
             print 'No container found, use aosp init first.'
             return
 
-        print 'Container Information'
+        print 'Container Information:'
         print 'Id:\t{id}'.format(id=container.id)
-        print 'Dir:\t{dir}'.format(dir=self.base_directory)
-        print 'RelDir:\t{dir}'.format(dir=self.relative_directory)
         print 'Image:\t{image}'.format(image=container.image)
         print 'Names:\t{names}'.format(names=container.names)
         print 'Status:\t{status}'.format(status=container.status)
+
+        print '\nAOSP Docker Information:'
+        print 'Dir:\t{dir}'.format(dir=self.base_directory)
+        print 'RelDir:\t{dir}'.format(dir=self.relative_directory)
+        print 'Config:\t{config}'.format(config=self.config.config_directory)
 
 if __name__ == "__main__":
     aosp = AospDocker()
