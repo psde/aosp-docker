@@ -31,6 +31,7 @@ class Dockerfile():
         d = ("FROM {base}\n"
              "MAINTAINER Mathias Garbe <mathias.garbe@inovex.de>\n"
              "RUN touch /env.bash && echo 'source /env.bash' > /rc.bash && echo 'cd $PWD' >> /rc.bash && echo \"trap \\\"declare -p | sed -e '/declare -[a-z]*r/d' > /env.bash && declare -f >> /env.bash\\\" EXIT\" >> /rc.bash\n"
+             "RUN chmod 777 /env.bash && chmod 777 /rc.bash\n"
              "RUN apt-get update\n"
              "RUN {java}\n"
              "RUN echo \"dash dash/sh boolean false\" | debconf-set-selections && dpkg-reconfigure -p critical dash\n"

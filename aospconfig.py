@@ -50,12 +50,20 @@ class AospDockerConfig:
     def get(self, section, option):
         try:
             return self.config.get(section, option)
-        except ConfigParser.NoOptionError:
+        except Exception:
             return None
 
     def remove_option(self, section, option):
         try:
             self.config.remove_option(section, option)
+            self.dirty = True
+            return True
+        except Exception:
+            return False
+
+    def remove_section(self, section):
+        try:
+            self.config.remove_section(section)
             self.dirty = True
             return True
         except Exception:

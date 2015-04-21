@@ -17,6 +17,8 @@
 import os
 import sys
 import shutil
+import pwd
+import getpass
 import operator
 import dockerclient
 import aospconfig
@@ -66,14 +68,16 @@ class AospDocker:
             pass
 
         if image is None:
+            print 'Image not found, building...'
             self.client.build_image(dockerfile)
 
         return True
 
     def get_container(self):
-        try:
-            container_id = self.config.get('main', 'container-id')
-        except ConfigParser.NoOptionError:
+        container_id = self.config.get('main', 'container-id')
+        user = self.config.get('main', 'user')
+
+        if container_id is None or user is None:
             return None
 
         container = self.client.get_container_by_id(container_id)
@@ -158,11 +162,20 @@ class AospDocker:
 
         volumes = {'/tmp/.X11-unix': '/tmp/.X11-unix', os.getcwd(): '/aosp'}
         env = ['DISPLAY=unix{display}'.format(display=os.environ['DISPLAY'])]
+        user = pwd.getpwnam(getpass.getuser())
         container = self.client.create_container(dockerfile=dockerfile, command='/bin/bash', environment=env, volumes=volumes)
 
-        self.client.interactive(container.id, '/bin/bash -ic "{saveEnv}"'.format(saveEnv=AospDocker.SaveEnv))
+        # Add user to container
+        self.client.interactive(container.id, '/bin/bash -c "useradd -b / -d / -M -U -u {uid} -s /bin/bash {user}"'
+                                .format(uid=user.pw_uid, user=user.pw_name))
+
+        # Save the environment for the first time
+        self.client.interactive(container.id, 'su - {user} -c /bin/bash -c "{saveEnv}"'
+                                .format(saveEnv=AospDocker.SaveEnv, user=user.pw_name))
 
         self.config.set('main', 'container-id', container.id)
+        self.config.set('main', 'user', user.pw_name)
+
         print 'done: {id}'.format(id=container.id)
         print 'You can now use aosp exec [COMMAND]'
         print 'In order to use X11, you need to enable access via \'xhost +\''
@@ -171,6 +184,7 @@ class AospDocker:
 
     def execute(self):
         container = self.get_container()
+        user = self.config.get('main', 'user')
 
         if len(sys.argv) == 2:
             print 'Not enough parameters.'
@@ -179,24 +193,33 @@ class AospDocker:
 
         cmd = " ".join(sys.argv[2:])
 
-        self.client.interactive(container.id, '/bin/bash -ic "{loadEnv} && cd /aosp/{rel_dir} && {cmd} && {saveEnv}"'.format(rel_dir=self.relative_directory, loadEnv=AospDocker.LoadEnv, cmd=cmd, saveEnv=AospDocker.SaveEnv))
+        # Execute command as user
+        self.client.interactive(container.id, 'su - {user} -c "{loadEnv} && cd /aosp/{rel_dir} && {cmd} && {saveEnv}"'
+                                .format(rel_dir=self.relative_directory, loadEnv=AospDocker.LoadEnv, cmd=cmd, saveEnv=AospDocker.SaveEnv))
 
     def bash(self):
         container = self.get_container()
-        self.client.interactive(container.id, '/bin/bash -ic "{loadEnv} && cd /aosp/{rel_dir} && {saveEnv}"'.format(rel_dir=self.relative_directory, loadEnv=AospDocker.LoadEnv, saveEnv=AospDocker.SaveEnv))
-        self.client.interactive(container.id, '/bin/bash --rcfile /rc.bash')
+        user = self.config.get('main', 'user')
+
+        # Change directory and save env
+        self.client.interactive(container.id, 'su - {user} -c "{loadEnv} && cd /aosp/{rel_dir} && {saveEnv}"'
+                                .format(user=user, rel_dir=self.relative_directory, loadEnv=AospDocker.LoadEnv, saveEnv=AospDocker.SaveEnv))
+
+        # Open a (trapped) shell using rc.bash
+        self.client.interactive(container.id, 'su - {user} -c "/bin/bash --rcfile /rc.bash"'
+                                .format(user=user))
 
     def clean(self):
         container = self.get_container()
 
         if container is None:
             print 'Container not initialized.'
-            self.config.remove_option('main', 'container-id')
+            self.config.remove_section('main')
             return
 
         print 'Container found, trying to remove... ',
         self.client.remove_container(container.id)
-        self.config.remove_option('main', 'container-id')
+        self.config.remove_section('main')
         print 'done.'
 
         print 'Removing configuration directory... ',
@@ -217,6 +240,7 @@ class AospDocker:
         print 'Status:\t{status}'.format(status=container.status)
 
         print '\nAOSP Docker Information:'
+        print 'User:\t{user}'.format(user=self.config.get('main', 'user'))
         print 'Dir:\t{dir}'.format(dir=self.base_directory)
         print 'RelDir:\t{dir}'.format(dir=self.relative_directory)
         print 'Config:\t{config}'.format(config=self.config.config_directory)
