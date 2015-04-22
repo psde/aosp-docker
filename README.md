@@ -9,9 +9,27 @@ Very early state, expect things to change and break with new commits.
 * docker 1.6
 * python2: docker-py
 
-## Todo
+## Why?
+
+In order to compile AOSP a very specific tool chain is needed. Bash is needed for every version, Android 4.0 needs gcc 4.4 and Oracle JDK 6, Android 5.0 gcc 4.8 and OpenJDK 7. Using a virtual machine for building has a large overhead, most developers will use a full Ubuntu installation with XServer and everything, which can take up to 20 Gb disk space and comes with processor and memory overhead. Having to work on and build multiple different AOSP versions I opted to hack together this python script which uses docker to build the different versions.
+
+## How?
+
+The container image already has the needed tool chain installed and could be used without a script. But as we do not want to work inside the container the script uses `docker exec` to run commands inside the container. In order to save the bash environment every `aosp exec` command is wrapped:
+
+	source /env.bash && cd {dir} && {cmd} && declare -p | sed -e \'/declare -[a-z]*r/d\' > /env.bash && declare -f >> /env.bash
+
+This will first source the saved environment, change to the requested directory, executes the command and then saves the environment (including functions) back to disk. The `sed` regex is needed to only save environment variables which are not read-only.
+
+When dropping into a bash with `aosp bash`, the script will execute `/bin/bash --rcfile /rc.bash`. This rcfile will trap the exit signal in order to save the environment after the bash is closed:
+
+	trap "declare -p | sed -e '/declare -[a-z]*r/d' > /env.bash && declare -f >> /env.bash" EXIT
+
+
+## Todo and Known Issues
 
 * Dockerfiles should not be generated at runtime, but maybe checked into the repository
+* git and bash configs are currently not copied to the container
 
 ## Usage
 	Usage: aosp [COMMAND] [arg...]
