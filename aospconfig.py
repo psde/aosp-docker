@@ -72,4 +72,4 @@ class AospDockerConfig:
     def remove_configuration(self):
         self.dirty = False
         self.config = ConfigParser.SafeConfigParser()
-        print 'Would remove {dir}'.format(dir=self.config_directory)
+        shutil.rmtree(self.config_directory)
