@@ -246,5 +246,8 @@ class AospDocker:
         print 'RelDir:\t{dir}'.format(dir=self.relative_directory)
         print 'Config:\t{config}'.format(config=self.config.config_directory)
 
+def cmd():
+    AospDocker()
+
 if __name__ == "__main__":
-    aosp = AospDocker()
+    cmd()
