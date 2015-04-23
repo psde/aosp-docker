@@ -86,8 +86,9 @@ class AospDocker:
             return None
 
         if not container.up:
-            print 'Container stopped, starting ...'
-            self.client.startContainer(container.id)
+            print 'Container stopped, starting...',
+            self.client.start_container(container.id)
+            print 'done.'
 
         return container
 
@@ -217,12 +218,12 @@ class AospDocker:
             self.config.remove_section('main')
             return
 
-        print 'Container found, trying to remove... ',
+        print 'Container found, trying to remove...',
         self.client.remove_container(container.id)
         self.config.remove_section('main')
         print 'done.'
 
-        print 'Removing configuration directory... ',
+        print 'Removing configuration directory...',
         self.config.remove_configuration()
         print 'done.'
 
