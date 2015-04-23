@@ -17,7 +17,8 @@ from codecs import open
 from os import path
 
 
-with open(path.join(path.abspath(path.dirname(__file__)), 'README.md'), encoding='utf-8') as f:
+dir = path.abspath(path.dirname(__file__))
+with open(path.join(dir, 'README.md'), encoding='utf-8') as f:
     readme = f.read()
 
 setup(
