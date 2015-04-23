@@ -1,0 +1,6 @@
+#!/usr/bin/env python2
+
+import aospdocker
+
+
+aosp = aospdocker.AospDocker()
