@@ -113,17 +113,26 @@ class AospDocker:
         container = self.get_container()
 
         cmd = sys.argv[1]
+        root = False
+
+        if cmd == 'root':
+            root = True
+            if len(sys.argv) == 2:
+                print 'Not enough parameters'
+                self.print_usage()
+                return
+            cmd = sys.argv[2]
 
         if cmd == 'init':
             self.init()
         elif cmd == 'exec' or cmd == 'execute':
             if container is None:
                 return self.print_needs_container()
-            self.execute()
+            self.execute(root)
         elif cmd == 'bash':
             if container is None:
                 return self.print_needs_container()
-            self.bash()
+            self.bash(root)
         elif cmd == 'clean':
             self.clean()
         elif cmd == 'info':
@@ -183,7 +192,7 @@ class AospDocker:
 
         pass
 
-    def execute(self):
+    def execute(self, root=False):
         container = self.get_container()
         user = self.config.get('main', 'user')
 
@@ -194,21 +203,27 @@ class AospDocker:
 
         cmd = " ".join(sys.argv[2:])
 
-        # Execute command as user
-        self.client.interactive(container.id, 'su - {user} -c "{loadEnv} && cd /aosp/{rel_dir} && {cmd} && {saveEnv}"'
-                                .format(user=user, rel_dir=self.relative_directory, loadEnv=AospDocker.LoadEnv, cmd=cmd, saveEnv=AospDocker.SaveEnv))
+        if root:
+            self.client.interactive(container.id, '/bin/bash -ic "{cmd}"'.format(cmd=cmd))
+        else:
+            # Execute command as user
+            self.client.interactive(container.id, 'su - {user} -c "{loadEnv} && cd /aosp/{rel_dir} && {cmd} && {saveEnv}"'
+                                    .format(user=user, rel_dir=self.relative_directory, loadEnv=AospDocker.LoadEnv, cmd=cmd, saveEnv=AospDocker.SaveEnv))
 
-    def bash(self):
+    def bash(self, root=False):
         container = self.get_container()
         user = self.config.get('main', 'user')
 
-        # Change directory and save env
-        self.client.interactive(container.id, 'su - {user} -c "{loadEnv} && cd /aosp/{rel_dir} && {saveEnv}"'
-                                .format(user=user, rel_dir=self.relative_directory, loadEnv=AospDocker.LoadEnv, saveEnv=AospDocker.SaveEnv))
+        if root:
+            self.client.interactive(container.id, '/bin/bash')
+        else:
+            # Change directory and save env
+            self.client.interactive(container.id, 'su - {user} -c "{loadEnv} && cd /aosp/{rel_dir} && {saveEnv}"'
+                                    .format(user=user, rel_dir=self.relative_directory, loadEnv=AospDocker.LoadEnv, saveEnv=AospDocker.SaveEnv))
 
-        # Open a (trapped) shell using rc.bash
-        self.client.interactive(container.id, 'su - {user} -c "/bin/bash --rcfile /rc.bash"'
-                                .format(user=user))
+            # Open a (trapped) shell using rc.bash
+            self.client.interactive(container.id, 'su - {user} -c "/bin/bash --rcfile /rc.bash"'
+                                    .format(user=user))
 
     def clean(self):
         container = self.get_container()
