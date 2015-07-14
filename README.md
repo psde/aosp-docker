@@ -7,7 +7,7 @@ Very early state, expect things to change and break with new commits.
 ## Dependencies
 
 * docker 1.6
-* python2: docker-py
+* python: docker-py 1.3
 
 ## Why?
 
@@ -25,6 +25,7 @@ When dropping into a bash with `aosp bash`, the script will execute `/bin/bash -
 
 	trap "declare -p | sed -e '/declare -[a-z]*r/d' > /env.bash && declare -f >> /env.bash" EXIT
 
+The script will create a user inside the docker container with the same uid/gid as your user, which will be used when interacting with the `exec` and `bash` commands. In case you want root access, `root exec` or `root bash` can be used, but the environment will not be saved.
 
 ## Todo and Known Issues
 
@@ -39,6 +40,8 @@ When dropping into a bash with `aosp bash`, the script will execute `/bin/bash -
 		bash	Starts a bash shell inside the container
 		clean	Removes container
 		info	Shows information about the aosp container
+
+	For root access please use `root exec` and `root bash`.
 
 ## Example usage
 

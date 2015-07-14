@@ -104,6 +104,8 @@ class AospDocker:
         print('\tbash\tStarts a bash shell inside the container')
         print('\tclean\tRemoves container')
         print('\tinfo\tShows information about the aosp container')
+        print('')
+        print('For root access please use `root exec` and `root bash`.')
 
     def main(self):
         if len(sys.argv) == 1:
