@@ -49,13 +49,14 @@ setup(
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
     ],
 
     keywords='aosp android docker development',
 
     packages=['aospdocker'],
 
-    install_requires=['docker-py'],
+    install_requires=['docker-py', 'future'],
 
     entry_points={
         'console_scripts': [

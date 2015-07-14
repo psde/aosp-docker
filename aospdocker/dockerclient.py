@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+from future.utils import iteritems
 import docker
 import subprocess
 import os
 import io
 import json
-from dockerfile import Dockerfile
+from aospdocker.dockerfile import Dockerfile
 
 
 class Container():
@@ -53,7 +55,7 @@ class Image():
         return '<{attrs}>'.format(attrs=attrs)
 
 
-class Client():
+class DockerClient():
     def __init__(self):
         self.client = docker.Client(**docker.utils.kwargs_from_env())
 
@@ -73,10 +75,14 @@ class Client():
 
         fileobj = io.BytesIO(dockerfile.build_dockerfile().encode('utf-8'))
         for line in self.client.build(fileobj=fileobj, rm=True, forcerm=True, tag=dockerfile.get_image_name()):
-            try:
-                print json.loads(line)['stream'],
-            except:
-                print line
+            jobj = json.loads(line.decode('utf-8'))
+
+            if 'stream' in jobj:
+                print(jobj['stream'], end='')
+            elif 'status' in jobj:
+                print('{status} {progress}'.format(status=jobj['status'], progress=jobj['progress']))
+            else:
+                print(line)
 
     def get_containers(self):
         containerInfos = self.client.containers(all=True)
@@ -88,7 +94,7 @@ class Client():
     def get_container_by_id(self, id):
         containers = self.get_containers()
         try:
-            return filter(lambda container: container.id == id, containers)[0]
+            return list(filter(lambda container: container.id == id, containers))[0]
         except Exception:
             return None
 
@@ -101,7 +107,7 @@ class Client():
 
         container_volumes = []
         binds = {}
-        for key, value in volumes.iteritems():
+        for key, value in iteritems(volumes):
             binds[key] = {'bind': value, 'ro': False}
             container_volumes.append(value)
 

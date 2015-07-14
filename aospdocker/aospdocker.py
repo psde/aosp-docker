@@ -14,15 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function, absolute_import
 import os
 import sys
 import shutil
 import pwd
 import getpass
 import operator
-import dockerclient
-import aospconfig
-from dockerfile import Dockerfile
+from aospdocker.dockerclient import DockerClient
+from aospdocker.aospconfig import AospConfig
+from aospdocker.dockerfile import Dockerfile
 
 
 class AospDocker:
@@ -31,7 +32,7 @@ class AospDocker:
 
     def __init__(self):
         self.versions = Dockerfile.build_versions()
-        self.client = dockerclient.Client()
+        self.client = DockerClient()
 
         self.base_directory = self.find_config_directory()
         if self.base_directory is None:
@@ -39,7 +40,7 @@ class AospDocker:
 
         self.relative_directory = os.path.relpath(os.getcwd(), self.base_directory)
 
-        self.config = aospconfig.AospDockerConfig(os.path.join(self.base_directory, '.aosp-docker'))
+        self.config = AospConfig(os.path.join(self.base_directory, '.aosp-docker'))
 
         self.main()
 
@@ -63,12 +64,12 @@ class AospDocker:
         image = None
         images = self.client.get_images()
         try:
-            image = filter(lambda image: image.repo.startswith(dockerfile.get_image_name()), images)[0]
+            image = list(filter(lambda image: image.repo.startswith(dockerfile.get_image_name()), images))[0]
         except Exception:
             pass
 
         if image is None:
-            print 'Image not found, building...'
+            print('Image not found, building...')
             self.client.build_image(dockerfile)
 
         return True
@@ -86,27 +87,27 @@ class AospDocker:
             return None
 
         if not container.up:
-            print 'Container stopped, starting...',
+            print('Container stopped, starting...', end='')
             self.client.start_container(container.id)
-            print 'done.'
+            print('done.')
 
         return container
 
     def print_needs_container(self):
-        print 'Container not found, please use \'aosp init\' first'
+        print('Container not found, please use \'aosp init\' first')
 
     def print_usage(self):
-        print 'Usage: aosp [COMMAND] [arg...]'
-        print 'Commands:'
-        print '\tinit\tInitialize a container in current directory (should be AOSP dir)'
-        print '\texec\tExecutes a command inside the aosp build container'
-        print '\tbash\tStarts a bash shell inside the container'
-        print '\tclean\tRemoves container'
-        print '\tinfo\tShows information about the aosp container'
+        print('Usage: aosp [COMMAND] [arg...]')
+        print('Commands:')
+        print('\tinit\tInitialize a container in current directory (should be AOSP dir)')
+        print('\texec\tExecutes a command inside the aosp build container')
+        print('\tbash\tStarts a bash shell inside the container')
+        print('\tclean\tRemoves container')
+        print('\tinfo\tShows information about the aosp container')
 
     def main(self):
         if len(sys.argv) == 1:
-            print 'Not enough parameters'
+            print('Not enough parameters')
             self.print_usage()
             return
 
@@ -118,7 +119,7 @@ class AospDocker:
         if cmd == 'root':
             root = True
             if len(sys.argv) == 2:
-                print 'Not enough parameters'
+                print('Not enough parameters')
                 self.print_usage()
                 return
             cmd = sys.argv[2]
@@ -138,24 +139,24 @@ class AospDocker:
         elif cmd == 'info':
             self.info()
         else:
-            print 'Unrecognized command'
+            print('Unrecognized command')
             self.print_usage()
 
     def print_init_usage(self):
-        print 'Usage: aosp init [VERSION]'
-        print 'Supported versions: '
+        print('Usage: aosp init [VERSION]')
+        print('Supported versions: ')
         for key, value in sorted(self.versions.items(), key=operator.itemgetter(0)):
-            print "\t{key}\t\tbased on {base}".format(key=key, base=value.base)
+            print("\t{key}\t\tbased on {base}".format(key=key, base=value.base))
 
     def init(self):
         if len(sys.argv) == 2:
-            print 'Not enough parameters'
+            print('Not enough parameters')
             self.print_init_usage()
             return
 
         version = sys.argv[2]
         if version not in self.versions:
-            print 'Did not recognize Android version.'
+            print('Did not recognize Android version.')
             self.print_init_usage()
             return
 
@@ -165,10 +166,10 @@ class AospDocker:
         container = self.get_container()
 
         if container is not None:
-            print 'Container already initialized.'
+            print('Container already initialized.')
             return
 
-        print 'Setting up new container...',
+        print('Setting up new container...', end='')
 
         volumes = {'/tmp/.X11-unix': '/tmp/.X11-unix', os.getcwd(): '/aosp'}
         env = ['DISPLAY=unix{display}'.format(display=os.environ['DISPLAY'])]
@@ -186,9 +187,9 @@ class AospDocker:
         self.config.set('main', 'container-id', container.id)
         self.config.set('main', 'user', user.pw_name)
 
-        print 'done: {id}'.format(id=container.id)
-        print 'You can now use aosp exec [COMMAND]'
-        print 'In order to use X11, you need to enable access via \'xhost +\''
+        print('done: {id}'.format(id=container.id))
+        print('You can now use aosp exec [COMMAND]')
+        print('In order to use X11, you need to enable access via \'xhost +\'')
 
         pass
 
@@ -197,8 +198,8 @@ class AospDocker:
         user = self.config.get('main', 'user')
 
         if len(sys.argv) == 2:
-            print 'Not enough parameters.'
-            print 'Usage: aosp exec [COMMAND...]'
+            print('Not enough parameters.')
+            print('Usage: aosp exec [COMMAND...]')
             return
 
         cmd = " ".join(sys.argv[2:])
@@ -229,37 +230,37 @@ class AospDocker:
         container = self.get_container()
 
         if container is None:
-            print 'Container not initialized.'
+            print('Container not initialized.')
             self.config.remove_section('main')
             return
 
-        print 'Container found, trying to remove...',
+        print('Container found, trying to remove...', end='')
         self.client.remove_container(container.id)
         self.config.remove_section('main')
-        print 'done.'
+        print('done.')
 
-        print 'Removing configuration directory...',
+        print('Removing configuration directory...', end='')
         self.config.remove_configuration()
-        print 'done.'
+        print('done.')
 
     def info(self):
         container = self.get_container()
 
         if container is None:
-            print 'No container found, use aosp init first.'
+            print('No container found, use aosp init first.')
             return
 
-        print 'Container Information:'
-        print 'Id:\t{id}'.format(id=container.id)
-        print 'Image:\t{image}'.format(image=container.image)
-        print 'Names:\t{names}'.format(names=container.names)
-        print 'Status:\t{status}'.format(status=container.status)
+        print('Container Information:')
+        print('Id:\t{id}'.format(id=container.id))
+        print('Image:\t{image}'.format(image=container.image))
+        print('Names:\t{names}'.format(names=container.names))
+        print('Status:\t{status}'.format(status=container.status))
 
-        print '\nAOSP Docker Information:'
-        print 'User:\t{user}'.format(user=self.config.get('main', 'user'))
-        print 'Dir:\t{dir}'.format(dir=self.base_directory)
-        print 'RelDir:\t{dir}'.format(dir=self.relative_directory)
-        print 'Config:\t{config}'.format(config=self.config.config_directory)
+        print('\nAOSP Docker Information:')
+        print('User:\t{user}'.format(user=self.config.get('main', 'user')))
+        print('Dir:\t{dir}'.format(dir=self.base_directory))
+        print('RelDir:\t{dir}'.format(dir=self.relative_directory))
+        print('Config:\t{config}'.format(config=self.config.config_directory))
 
 
 def cmd():

@@ -1,6 +1,6 @@
 # aosp-docker
 
-A python 2 script which can be used to build various AOSP versions inside a docker container.
+A Python 2/3 script which can be used to build various AOSP versions inside a docker container.
 
 Very early state, expect things to change and break with new commits.
 

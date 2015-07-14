@@ -17,16 +17,17 @@
 import os
 import sys
 import shutil
-import ConfigParser
+
+from configparser import SafeConfigParser
 
 
-class AospDockerConfig:
+class AospConfig:
     def __init__(self, config_directory):
         self.config_directory = config_directory
         self.config_file = os.path.join(config_directory, 'config')
         self.dirty = False
 
-        self.config = ConfigParser.SafeConfigParser()
+        self.config = SafeConfigParser()
         self.config.read(self.config_file)
 
     def write(self):
@@ -71,5 +72,5 @@ class AospDockerConfig:
 
     def remove_configuration(self):
         self.dirty = False
-        self.config = ConfigParser.SafeConfigParser()
+        self.config = SafeConfigParser()
         shutil.rmtree(self.config_directory)
