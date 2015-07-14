@@ -1,4 +1,4 @@
-# Copyright 2015 Mathias Garbe <mathias.garbe@inovex.de>
+# Copyright 2015 Mathias Garbe <mail@mathias-garbe.de>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
