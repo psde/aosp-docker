@@ -25,7 +25,7 @@ When dropping into a bash with `aosp bash`, the script will execute `/bin/bash -
 
 	trap "declare -p | sed -e '/declare -[a-z]*r/d' > /env.bash && declare -f >> /env.bash" EXIT
 
-The script will create a user inside the docker container with the same uid/gid as your user, which will be used when interacting with the `exec` and `bash` commands. In case you want root access, `root exec` or `root bash` can be used, but the environment will not be saved.
+The script will create a user inside the docker container with the same uid/gid as your user, which will be used when interacting with the `exec` and `bash` commands. In case you want root access, `aosp root exec` and `aosp root bash` can be used, but the environment will not be saved.
 
 ## Todo and Known Issues
 
