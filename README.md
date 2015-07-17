@@ -64,6 +64,10 @@ The script will create a user inside the docker container with the same uid/gid 
 	~/aosp $> aosp exec lunch
 	~/aosp $> aosp bash
 	/aosp# make -j5
-
+	
+### Enable X forwarding and start emulator
+	~/aosp $> xhost +
+	~/aosp $> aosp exec emulator
+	
 ### Remove container
 	~/aosp $> aosp clean
